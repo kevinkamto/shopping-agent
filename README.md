@@ -1,6 +1,6 @@
 # Multi-Agent Shopping Assistant
 
-> AI-powered shopping assistant built with a multi-agent architecture.  
+> AI-powered shopping assistant built with a multi-agent architecture.
 > **Backend:** FastAPI · **Frontend:** Next.js + shadcn/ui · **LLMs:** OpenAI · **Search:** Tavily
 
 ![Shopping Assistant](images/thumb.png)
@@ -18,7 +18,7 @@ User Query
     │
     ▼
 ┌─────────────────────────────────────────────────────┐
-│                  Orchestrator Agent                  │
+│                  Orchestrator Agent                 │
 │  (GPT-4o · routes tasks, aggregates results)        │
 └──────┬──────────┬───────────────┬───────────────────┘
        │          │               │
@@ -26,7 +26,7 @@ User Query
  ┌──────────┐ ┌──────────┐ ┌──────────────┐
  │  Search  │ │ Analysis │ │ Recommender  │
  │  Agent   │ │  Agent   │ │    Agent     │
- │ (Tavily) │ │ (GPT-4o) │ │  (GPT-4o)   │
+ │ (Tavily) │ │ (GPT-4o) │ │  (GPT-4o)    │
  └──────────┘ └──────────┘ └──────────────┘
 ```
 
@@ -152,19 +152,19 @@ data: {"type": "result", "result": { ... }}
 
 ### Backend (`backend/.env`)
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `OPENAI_API_KEY` | Yes | — | OpenAI API key |
-| `TAVILY_API_KEY` | Yes | — | Tavily search API key |
-| `OPENAI_MODEL` | No | `gpt-4o` | OpenAI model to use |
-| `MAX_SEARCH_RESULTS` | No | `5` | Max products returned |
-| `AGENT_TIMEOUT_SECONDS` | No | `30` | Per-agent timeout |
+| Variable                  | Required | Default    | Description           |
+| ------------------------- | -------- | ---------- | --------------------- |
+| `OPENAI_API_KEY`        | Yes      | —         | OpenAI API key        |
+| `TAVILY_API_KEY`        | Yes      | —         | Tavily search API key |
+| `OPENAI_MODEL`          | No       | `gpt-4o` | OpenAI model to use   |
+| `MAX_SEARCH_RESULTS`    | No       | `5`      | Max products returned |
+| `AGENT_TIMEOUT_SECONDS` | No       | `30`     | Per-agent timeout     |
 
 ### Frontend (`frontend/.env.local`)
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `NEXT_PUBLIC_API_URL` | Yes | `http://localhost:8000` | Backend base URL |
+| Variable                | Required | Default                   | Description      |
+| ----------------------- | -------- | ------------------------- | ---------------- |
+| `NEXT_PUBLIC_API_URL` | Yes      | `http://localhost:8000` | Backend base URL |
 
 ---
 
@@ -199,19 +199,19 @@ pnpm build
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Backend framework | FastAPI |
-| LLM | OpenAI GPT-4o |
-| Search | Tavily |
-| Data validation | Pydantic v2 |
-| Python tooling | uv, ruff, mypy |
-| Node.js package manager | pnpm |
-| Frontend framework | Next.js 15 (App Router) |
-| UI components | shadcn/ui |
-| Styling | Tailwind CSS v4 |
-| Animations | Framer Motion |
-| Language | TypeScript (strict) |
+| Layer                   | Technology              |
+| ----------------------- | ----------------------- |
+| Backend framework       | FastAPI                 |
+| LLM                     | OpenAI GPT-4o           |
+| Search                  | Tavily                  |
+| Data validation         | Pydantic v2             |
+| Python tooling          | uv, ruff, mypy          |
+| Node.js package manager | pnpm                    |
+| Frontend framework      | Next.js 15 (App Router) |
+| UI components           | shadcn/ui               |
+| Styling                 | Tailwind CSS v4         |
+| Animations              | Framer Motion           |
+| Language                | TypeScript (strict)     |
 
 ---
 
