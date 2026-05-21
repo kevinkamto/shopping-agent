@@ -54,7 +54,7 @@ class RecommenderAgent:
                         "You are a product recommender agent. Given a list of analysed products, "
                         "rank them and select the best ones for the user. "
                         "Return a JSON object with: "
-                        "'products' (array, each with title, price, url, pros, cons, score (0-1), reasoning), "
+                        "'products' (array, each with title, price, url, pros, cons, score (0-1), reasoning), "  # noqa: E501
                         "'summary' (string, 1-2 sentences overview), "
                         "'agent_trace' (array of strings describing your reasoning steps)."
                     ),
@@ -72,7 +72,9 @@ class RecommenderAgent:
             timeout=settings.agent_timeout_seconds,
         )
 
-        content = response.choices[0].message.content or '{"products":[],"summary":"","agent_trace":[]}'
+        content = (
+            response.choices[0].message.content or '{"products":[],"summary":"","agent_trace":[]}'
+        )
         data = json.loads(content)
 
         ranked = [

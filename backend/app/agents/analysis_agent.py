@@ -45,9 +45,9 @@ class AnalysisAgent:
                     "content": (
                         "You are a product analysis agent. Given raw search results, "
                         "extract structured product information. For each product found, "
-                        "return a JSON object with keys: title, price (as string with currency symbol), "
+                        "return a JSON object with keys: title, price (as string with currency symbol), "  # noqa: E501
                         "url, pros (list of strings), cons (list of strings), "
-                        "raw_score (float 0-1 based on apparent quality/value), reasoning (string). "
+                        "raw_score (float 0-1 based on apparent quality/value), reasoning (string). "  # noqa: E501
                         "Return a JSON object with a 'products' array."
                     ),
                 },
