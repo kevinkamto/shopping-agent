@@ -1,0 +1,30 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary:     #0e0e10;
+  --bg-surface:     #18181b;
+  --bg-elevated:    #1f1f23;
+  --accent-gold:    #f59e0b;
+  --accent-warm:    #fb923c;
+  --text-primary:   #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted:     #52525b;
+  --border:         #27272a;
+  --border-active:  #3f3f46;
+  --radius: 0.5rem;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "DM Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
