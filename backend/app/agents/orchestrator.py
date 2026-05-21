@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import asyncio
+import asyncio  # used in run() for concurrent analysis
 import time
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -37,41 +37,34 @@ class OrchestratorAgent:
 
         yield _event("search", "done", f"Completed {len(raw_results)} searches")
 
-        # ── Analysis: concurrent, events collected then flushed ─────────────
+        # ── Analysis: sequential so events appear per-query, not all at once ──
         yield _event("orchestrator", "running", "Coordinating analysis phase…")
 
-        analysis_log: list[tuple[str, str]] = []
+        analyses: list[list[AnalysedProduct]] = []
+        for r in raw_results:
+            task_log: list[tuple[str, str]] = []
 
-        def on_analysis(status: str, msg: str) -> None:
-            analysis_log.append((status, msg))
+            def _capture(status: str, msg: str, _log: list[tuple[str, str]] = task_log) -> None:
+                _log.append((status, msg))
 
-        analyses: list[list[AnalysedProduct]] = list(
-            await asyncio.gather(*[
-                self.analysis.run(r, on_event=on_analysis) for r in raw_results
-            ])
-        )
-
-        for status, msg in analysis_log:
-            yield _event("analysis", status, msg)
+            group = await self.analysis.run(r, on_event=_capture)
+            analyses.append(group)
+            for status, msg in task_log:
+                yield _event("analysis", status, msg)
 
         deduped = _dedup(analyses)
         total = sum(len(a) for a in deduped)
         yield _event("analysis", "done", f"Extracted {total} unique candidate products")
 
-        # ── Recommender ─────────────────────────────────────────────────────
+        # ── Recommender: yield "scoring" before the await so it appears live ─
         yield _event("orchestrator", "running", "Coordinating ranking phase…")
+        n_candidates = sum(len(a) for a in deduped)
+        yield _event("recommender", "running", f"Scoring {n_candidates} candidates with GPT-4o…")
 
-        recommender_log: list[tuple[str, str]] = []
+        result = await self.recommender.run(req, deduped)
 
-        def on_recommender(status: str, msg: str) -> None:
-            recommender_log.append((status, msg))
-
-        result = await self.recommender.run(req, deduped, on_event=on_recommender)
-
-        for status, msg in recommender_log:
-            yield _event("recommender", status, msg)
-
-        yield _event("recommender", "done", f"Selected {len(result.products)} products")
+        yield _event("recommender", "running", f"Ranked {len(result.products)} products by score")
+        yield _event("recommender", "done", f"Selected top {len(result.products)} products")
 
         # ── Orchestrator: done ───────────────────────────────────────────────
         yield _event("orchestrator", "done", "Pipeline complete")
