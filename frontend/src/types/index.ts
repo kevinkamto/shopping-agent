@@ -17,7 +17,7 @@ export interface ShoppingResponse {
 }
 
 export type AgentKey = "orchestrator" | "search" | "analysis" | "recommender"
-export type AgentStatus = "thinking" | "done" | "error"
+export type AgentStatus = "running" | "thinking" | "done" | "error"
 
 export interface AgentEvent {
   agent: AgentKey

@@ -1,57 +1,125 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Bot, Search, BarChart2, Star } from "lucide-react"
-import type { AgentEvent } from "@/types"
+import { Bot, Search, BarChart2, Star, ChevronDown, CheckCircle2, XCircle, Loader2 } from "lucide-react"
+import type { AgentEvent, AgentStatus } from "@/types"
 
 const AGENTS = {
-  orchestrator: { icon: Bot, label: "Orchestrator", color: "#f59e0b" },
-  search: { icon: Search, label: "Search", color: "#60a5fa" },
-  analysis: { icon: BarChart2, label: "Analysis", color: "#34d399" },
-  recommender: { icon: Star, label: "Recommender", color: "#f472b6" },
+  orchestrator: { icon: Bot,       label: "Orchestrator", color: "#f59e0b" },
+  search:       { icon: Search,    label: "Search",       color: "#60a5fa" },
+  analysis:     { icon: BarChart2, label: "Analysis",     color: "#34d399" },
+  recommender:  { icon: Star,      label: "Recommender",  color: "#f472b6" },
 } as const
 
-export function AgentStatusStream({ events }: { events: AgentEvent[] }) {
+function StatusIcon({ status }: { status: AgentStatus }) {
+  if (status === "done")
+    return <CheckCircle2 size={13} className="shrink-0 text-emerald-400" />
+  if (status === "error")
+    return <XCircle size={13} className="shrink-0 text-red-400" />
+  return <Loader2 size={13} className="shrink-0 animate-spin text-zinc-500" />
+}
+
+interface AgentStatusStreamProps {
+  events: AgentEvent[]
+  loading: boolean
+}
+
+export function AgentStatusStream({ events, loading }: AgentStatusStreamProps) {
+  const [collapsed, setCollapsed] = useState(false)
+
+  // auto-expand when a new search starts
+  useEffect(() => {
+    if (events.length === 0) setCollapsed(false)
+  }, [events.length])
+
+  if (!loading && events.length === 0) return null
+
+  const doneCount = events.filter((e) => e.status === "done").length
+  const summaryText =
+    loading && events.length === 0
+      ? "Starting…"
+      : loading
+        ? `${doneCount} of ${events.length} steps done`
+        : `${doneCount} steps completed`
+
   return (
-    <div className="space-y-2">
-      <AnimatePresence>
-        {events.map((event, i) => {
-          const agentConfig = AGENTS[event.agent]
-          if (!agentConfig) return null
-          const { icon: Icon, label, color } = agentConfig
-          return (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm backdrop-blur-sm"
-            >
-              <div
-                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ring-1"
-                style={{ color, borderColor: color + "40", background: color + "15" }}
-              >
-                <Icon size={12} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="font-medium" style={{ color }}>
-                  {label}
-                </span>
-                <span className="ml-2 text-zinc-400">{event.message}</span>
-              </div>
-              {event.status === "thinking" && (
-                <div className="flex gap-1 items-center mt-1 shrink-0">
-                  {[0, 1, 2].map((j) => (
-                    <div
-                      key={j}
-                      className="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-bounce"
-                      style={{ animationDelay: `${j * 0.15}s` }}
-                    />
-                  ))}
+    <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm">
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-zinc-800/50"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+            Agent Activity
+          </span>
+          {loading && <Loader2 size={11} className="animate-spin text-zinc-600" />}
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-zinc-600">{summaryText}</span>
+          <motion.div
+            animate={{ rotate: collapsed ? -90 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ChevronDown size={14} className="text-zinc-500" />
+          </motion.div>
+        </div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.div
+            key="body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="divide-y divide-zinc-800/60 border-t border-zinc-800">
+              {events.length === 0 && (
+                <div className="flex items-center gap-3 px-4 py-2.5 text-xs text-zinc-500">
+                  <Loader2 size={12} className="animate-spin" />
+                  Initialising agents…
                 </div>
               )}
-            </motion.div>
-          )
-        })}
+
+              <AnimatePresence>
+                {events.map((event, i) => {
+                  const cfg = AGENTS[event.agent]
+                  if (!cfg) return null
+                  const { icon: Icon, label, color } = cfg
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="flex items-center gap-3 px-4 py-2.5"
+                    >
+                      <div
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                        style={{ background: color + "18", color }}
+                      >
+                        <Icon size={10} />
+                      </div>
+
+                      <span className="w-24 shrink-0 text-xs font-medium" style={{ color }}>
+                        {label}
+                      </span>
+
+                      <span className="min-w-0 flex-1 truncate text-xs text-zinc-400">
+                        {event.message}
+                      </span>
+
+                      <StatusIcon status={event.status} />
+                    </motion.div>
+                  )
+                })}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   )

@@ -15,14 +15,7 @@ export default function ChatPage() {
       <main className="flex flex-1 flex-col gap-6 px-4 py-8 sm:px-8 max-w-5xl mx-auto w-full">
         <ChatInput onSearch={search} loading={loading} />
 
-        {(events.length > 0 || loading) && (
-          <section>
-            <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
-              Agent Activity
-            </h2>
-            <AgentStatusStream events={events} />
-          </section>
-        )}
+        <AgentStatusStream events={events} loading={loading} />
 
         {result && (
           <section>

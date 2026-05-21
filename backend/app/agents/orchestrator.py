@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -23,77 +24,33 @@ class OrchestratorAgent:
         return await self.recommender.run(req, list(analyses))
 
     async def stream(self, req: ShoppingRequest) -> AsyncGenerator[dict[str, Any], None]:
-        yield {
-            "type": "agent_event",
-            "event": {
-                "agent": "orchestrator",
-                "status": "thinking",
-                "message": f"Decomposing query: {req.query}",
-                "timestamp": _now(),
-            },
-        }
+        yield _event("orchestrator", "running", f'Planning search strategy for: "{req.query}"')
 
+        yield _event("search", "running", "Generating targeted search queries…")
         raw_results = await self.search.run(req.query, req.max_results)
+        yield _event("search", "done", f"Completed {len(raw_results)} search queries")
 
-        yield {
-            "type": "agent_event",
-            "event": {
-                "agent": "search",
-                "status": "done",
-                "message": f"Found results for {len(raw_results)} search queries",
-                "timestamp": _now(),
-            },
-        }
-
-        yield {
-            "type": "agent_event",
-            "event": {
-                "agent": "analysis",
-                "status": "thinking",
-                "message": f"Analysing {sum(len(r.results) for r in raw_results)} raw results",
-                "timestamp": _now(),
-            },
-        }
-
+        total_raw = sum(len(r.results) for r in raw_results)
+        yield _event("analysis", "running", f"Analysing {total_raw} raw results…")
         analyses = await asyncio.gather(*[self.analysis.run(r) for r in raw_results])
         total_products = sum(len(a) for a in analyses)
+        yield _event("analysis", "done", f"Extracted {total_products} candidate products")
 
-        yield {
-            "type": "agent_event",
-            "event": {
-                "agent": "analysis",
-                "status": "done",
-                "message": f"Extracted {total_products} products",
-                "timestamp": _now(),
-            },
-        }
-
-        yield {
-            "type": "agent_event",
-            "event": {
-                "agent": "recommender",
-                "status": "thinking",
-                "message": "Ranking and generating recommendations",
-                "timestamp": _now(),
-            },
-        }
-
+        yield _event("recommender", "running", f"Ranking top {req.max_results} recommendations…")
         result = await self.recommender.run(req, list(analyses))
+        yield _event("recommender", "done", f"Selected {len(result.products)} products")
 
-        yield {
-            "type": "agent_event",
-            "event": {
-                "agent": "recommender",
-                "status": "done",
-                "message": f"Ranked {len(result.products)} products",
-                "timestamp": _now(),
-            },
-        }
-
+        yield _event("orchestrator", "done", "Search complete")
         yield {"type": "result", "result": result.model_dump()}
 
 
-def _now() -> int:
-    import time
-
-    return int(time.time() * 1000)
+def _event(agent: str, status: str, message: str) -> dict[str, Any]:
+    return {
+        "type": "agent_event",
+        "event": {
+            "agent": agent,
+            "status": status,
+            "message": message,
+            "timestamp": int(time.time() * 1000),
+        },
+    }

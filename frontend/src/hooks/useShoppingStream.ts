@@ -21,7 +21,7 @@ export function useShoppingStream() {
       const response = await fetch(`${BASE_URL}/api/v1/search/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, budget, currency: "USD", max_results: 5 }),
+        body: JSON.stringify({ query, budget, currency: "USD", max_results: 6 }),
       })
 
       if (!response.ok || !response.body) {
