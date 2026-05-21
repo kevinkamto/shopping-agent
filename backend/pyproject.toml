@@ -29,12 +29,12 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "ANN"]
-ignore = ["ANN101", "ANN102"]
+ignore = []
 
 [tool.mypy]
 strict = true
 python_version = "3.12"
 
 [[tool.mypy.overrides]]
-module = "tavily.*"
+module = ["tavily", "tavily.*"]
 ignore_missing_imports = true
