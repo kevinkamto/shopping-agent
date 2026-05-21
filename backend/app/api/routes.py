@@ -1,4 +1,5 @@
 import json
+from collections.abc import AsyncIterator
 
 from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse
@@ -18,7 +19,7 @@ async def search(req: ShoppingRequest) -> dict:  # type: ignore[type-arg]
 
 @router.post("/search/stream")
 async def search_stream(req: ShoppingRequest) -> EventSourceResponse:
-    async def event_generator() -> object:
+    async def event_generator() -> AsyncIterator[dict[str, str]]:
         agent = OrchestratorAgent()
         async for event in agent.stream(req):
             yield {"data": json.dumps(event)}

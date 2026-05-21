@@ -14,8 +14,8 @@ dependencies = [
     "sse-starlette>=2.1",
 ]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "ruff>=0.8",
     "mypy>=1.13",
     "pytest>=8.3",
@@ -34,3 +34,7 @@ ignore = ["ANN101", "ANN102"]
 [tool.mypy]
 strict = true
 python_version = "3.12"
+
+[[tool.mypy.overrides]]
+module = "tavily.*"
+ignore_missing_imports = true
