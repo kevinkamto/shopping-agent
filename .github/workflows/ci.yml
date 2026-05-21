@@ -8,9 +8,14 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      OPENAI_API_KEY: sk-dummy-key-for-ci
+      TAVILY_API_KEY: tvly-dummy-key-for-ci
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.12"
       - run: uv sync
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -24,12 +29,14 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm type-check
