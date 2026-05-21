@@ -40,8 +40,12 @@ class SearchAgent:
         return raw
 
     async def stream(self, query: str, max_results: int) -> AsyncGenerator[dict[str, Any], None]:
-        """Yields {"type": "event", "status": ..., "message": ...} then {"type": "result", "data": [...]}."""
-        yield {"type": "event", "status": "running", "message": "Generating search queries with GPT-4o…"}
+        """Yields {"type": "event", "status": ..., "message": ...} then {"type": "result", "data": [...]}."""  # noqa: E501
+        yield {
+            "type": "event",
+            "status": "running",
+            "message": "Generating search queries with GPT-4o…",
+        }
         search_queries = await self._generate_queries(query)
         n = len(search_queries)
         yield {

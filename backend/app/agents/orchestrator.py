@@ -49,8 +49,8 @@ class OrchestratorAgent:
 
             group = await self.analysis.run(r, on_event=_capture)
             analyses.append(group)
-            for status, msg in task_log:
-                yield _event("analysis", status, msg)
+            for status, msg in task_log:  # type: ignore
+                yield _event("analysis", status, msg)  # type: ignore
 
         deduped = _dedup(analyses)
         total = sum(len(a) for a in deduped)
@@ -94,4 +94,3 @@ def _event(agent: str, status: str, message: str) -> dict[str, Any]:
             "timestamp": int(time.time() * 1000),
         },
     }
-
