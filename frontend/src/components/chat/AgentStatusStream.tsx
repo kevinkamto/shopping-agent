@@ -8,7 +8,9 @@ import {
 } from "lucide-react"
 import type { AgentEvent, AgentKey, AgentStatus } from "@/types"
 
-const AGENT_ORDER: AgentKey[] = ["orchestrator", "search", "analysis", "recommender"]
+// ── constants ────────────────────────────────────────────────────────────────
+
+const SUB_AGENTS: AgentKey[] = ["search", "analysis", "recommender"]
 
 const AGENT_META = {
   orchestrator: { icon: Bot,       label: "Orchestrator", color: "#f59e0b" },
@@ -16,6 +18,8 @@ const AGENT_META = {
   analysis:     { icon: BarChart2, label: "Analysis",     color: "#34d399" },
   recommender:  { icon: Star,      label: "Recommender",  color: "#f472b6" },
 } as const
+
+// ── shared primitives ────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: AgentStatus }) {
   if (status === "done")
@@ -31,67 +35,76 @@ function StatusBadge({ status }: { status: AgentStatus }) {
       </span>
     )
   return (
-    <span className="flex items-center gap-1 text-xs font-medium text-zinc-400">
+    <span className="flex items-center gap-1 text-xs font-medium text-zinc-500">
       <Loader2 size={11} className="animate-spin" /> Running
     </span>
   )
 }
 
 function formatTime(ms: number) {
-  const d = new Date(ms)
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+  return new Date(ms).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  })
 }
 
-interface AgentPanelProps {
-  agentKey: AgentKey
+function LogLine({ event }: { event: AgentEvent }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -4 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.15 }}
+      className="flex items-start gap-3 font-mono text-xs"
+    >
+      <span className="shrink-0 text-zinc-600">{formatTime(event.timestamp)}</span>
+      <span className="text-zinc-400">{event.message}</span>
+    </motion.div>
+  )
+}
+
+// ── sub-agent panel (search / analysis / recommender) ───────────────────────
+
+interface SubAgentPanelProps {
+  agentKey: Exclude<AgentKey, "orchestrator">
   events: AgentEvent[]
 }
 
-function AgentPanel({ agentKey, events }: AgentPanelProps) {
+function SubAgentPanel({ agentKey, events }: SubAgentPanelProps) {
   const [collapsed, setCollapsed] = useState(false)
-  const meta = AGENT_META[agentKey]
-  const { icon: Icon, label, color } = meta
+  const { icon: Icon, label, color } = AGENT_META[agentKey]
   const latestStatus = events[events.length - 1]?.status ?? "running"
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -6 }}
+      initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/70"
+      transition={{ duration: 0.18 }}
+      className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950"
     >
-      {/* panel header */}
       <button
         onClick={() => setCollapsed((c) => !c)}
-        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-zinc-800/50"
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition hover:bg-zinc-800/40"
       >
-        {/* agent icon */}
+        {/* colored left accent */}
         <div
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
           style={{ background: color + "18", color }}
         >
-          <Icon size={12} />
+          <Icon size={10} />
         </div>
 
-        {/* label */}
         <span className="flex-1 text-xs font-semibold" style={{ color }}>
           {label}
         </span>
 
-        {/* status badge */}
         <StatusBadge status={latestStatus} />
 
-        {/* chevron */}
-        <motion.div
-          animate={{ rotate: collapsed ? -90 : 0 }}
-          transition={{ duration: 0.18 }}
-          className="ml-1"
-        >
-          <ChevronDown size={13} className="text-zinc-600" />
+        <motion.div animate={{ rotate: collapsed ? -90 : 0 }} transition={{ duration: 0.18 }}>
+          <ChevronDown size={12} className="text-zinc-600" />
         </motion.div>
       </button>
 
-      {/* collapsible log */}
       <AnimatePresence initial={false}>
         {!collapsed && (
           <motion.div
@@ -99,23 +112,12 @@ function AgentPanel({ agentKey, events }: AgentPanelProps) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
+            transition={{ duration: 0.18, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="border-t border-zinc-800 px-4 py-2 font-mono space-y-1">
+            <div className="space-y-1 border-t border-zinc-800/60 px-3 py-2">
               <AnimatePresence>
-                {events.map((e, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -4 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex items-start gap-3 text-xs"
-                  >
-                    <span className="shrink-0 text-zinc-600">{formatTime(e.timestamp)}</span>
-                    <span className="text-zinc-400">{e.message}</span>
-                  </motion.div>
-                ))}
+                {events.map((e, i) => <LogLine key={i} event={e} />)}
               </AnimatePresence>
             </div>
           </motion.div>
@@ -125,13 +127,110 @@ function AgentPanel({ agentKey, events }: AgentPanelProps) {
   )
 }
 
+// ── orchestrator panel (top-level container) ─────────────────────────────────
+
+interface OrchestratorPanelProps {
+  orchestratorEvents: AgentEvent[]
+  byAgent: Record<AgentKey, AgentEvent[]>
+  loading: boolean
+}
+
+function OrchestratorPanel({ orchestratorEvents, byAgent, loading }: OrchestratorPanelProps) {
+  const [collapsed, setCollapsed] = useState(false)
+  const latestStatus = orchestratorEvents[orchestratorEvents.length - 1]?.status ?? "running"
+  const activeSubAgents = SUB_AGENTS.filter((k) => byAgent[k].length > 0)
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900/80 backdrop-blur-sm">
+      {/* orchestrator header */}
+      <button
+        onClick={() => setCollapsed((c) => !c)}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-zinc-800/50"
+      >
+        <div
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+          style={{ background: "#f59e0b18", color: "#f59e0b" }}
+        >
+          <Bot size={14} />
+        </div>
+
+        <div className="flex-1">
+          <span className="text-sm font-semibold text-amber-400">Orchestrator</span>
+          <span className="ml-2 text-xs text-zinc-500">coordinates all agents</span>
+        </div>
+
+        {loading && latestStatus !== "done" && (
+          <Loader2 size={12} className="animate-spin text-zinc-600" />
+        )}
+
+        <StatusBadge status={latestStatus} />
+
+        <motion.div animate={{ rotate: collapsed ? -90 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown size={14} className="text-zinc-500" />
+        </motion.div>
+      </button>
+
+      {/* collapsible body */}
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.div
+            key="body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-zinc-800">
+              {/* orchestrator's own log */}
+              {orchestratorEvents.length > 0 && (
+                <div className="space-y-1 px-4 py-2.5">
+                  <AnimatePresence>
+                    {orchestratorEvents.map((e, i) => <LogLine key={i} event={e} />)}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* sub-agent panels, nested */}
+              {(activeSubAgents.length > 0 || loading) && (
+                <div className="space-y-2 border-t border-zinc-800/60 px-3 pb-3 pt-2.5">
+                  <p className="px-1 text-[10px] font-medium uppercase tracking-widest text-zinc-600">
+                    Sub-agents
+                  </p>
+                  <AnimatePresence>
+                    {activeSubAgents.map((key) => (
+                      <SubAgentPanel
+                        key={key}
+                        agentKey={key as Exclude<AgentKey, "orchestrator">}
+                        events={byAgent[key]}
+                      />
+                    ))}
+                  </AnimatePresence>
+
+                  {loading && activeSubAgents.length === 0 && (
+                    <div className="flex items-center gap-2 px-1 text-xs text-zinc-600">
+                      <Loader2 size={11} className="animate-spin" />
+                      Waiting for first agent…
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ── root export ───────────────────────────────────────────────────────────────
+
 interface AgentStatusStreamProps {
   events: AgentEvent[]
   loading: boolean
 }
 
 export function AgentStatusStream({ events, loading }: AgentStatusStreamProps) {
-  // reset panel collapse state when a new search begins
   const [searchId, setSearchId] = useState(0)
   useEffect(() => {
     if (events.length === 0 && loading) setSearchId((n) => n + 1)
@@ -139,27 +238,19 @@ export function AgentStatusStream({ events, loading }: AgentStatusStreamProps) {
 
   if (!loading && events.length === 0) return null
 
-  // group events by agent, preserving pipeline order
   const byAgent = Object.fromEntries(
-    AGENT_ORDER.map((key) => [key, events.filter((e) => e.agent === key)])
+    (["orchestrator", ...SUB_AGENTS] as AgentKey[]).map((k) => [
+      k,
+      events.filter((e) => e.agent === k),
+    ])
   ) as Record<AgentKey, AgentEvent[]>
 
-  const activeAgents = AGENT_ORDER.filter((key) => byAgent[key].length > 0)
-
   return (
-    <div className="space-y-2">
-      {loading && activeAgents.length === 0 && (
-        <div className="flex items-center gap-2 px-1 text-xs text-zinc-500">
-          <Loader2 size={12} className="animate-spin" />
-          Initialising agents…
-        </div>
-      )}
-
-      <AnimatePresence>
-        {activeAgents.map((key) => (
-          <AgentPanel key={`${searchId}-${key}`} agentKey={key} events={byAgent[key]} />
-        ))}
-      </AnimatePresence>
-    </div>
+    <OrchestratorPanel
+      key={searchId}
+      orchestratorEvents={byAgent.orchestrator}
+      byAgent={byAgent}
+      loading={loading}
+    />
   )
 }
