@@ -3,6 +3,8 @@
 > AI-powered shopping assistant built with a multi-agent architecture.  
 > **Backend:** FastAPI · **Frontend:** Next.js + shadcn/ui · **LLMs:** OpenAI · **Search:** Tavily
 
+![Shopping Assistant](images/thumb.png)
+
 ---
 
 ## Overview
@@ -89,6 +91,8 @@ concurrently \
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+![App Running](images/running.png)
+
 ---
 
 ## API Reference
@@ -139,6 +143,8 @@ data: {"type": "result", "result": { ... }}
 ```json
 { "status": "ok" }
 ```
+
+![Search Results](images/result.png)
 
 ---
 
