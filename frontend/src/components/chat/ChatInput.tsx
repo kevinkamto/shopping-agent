@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import { useState, type FormEvent } from "react"
-import { Search, Loader2 } from "lucide-react"
+import { useState, type FormEvent } from "react";
+import { Search, Loader2 } from "lucide-react";
 
 interface ChatInputProps {
-  onSearch: (query: string, budget?: number) => void
-  loading: boolean
+  onSearch: (query: string, budget?: number) => void;
+  loading: boolean;
 }
 
 export function ChatInput({ onSearch, loading }: ChatInputProps) {
-  const [query, setQuery] = useState("")
-  const [budget, setBudget] = useState("")
+  const [query, setQuery] = useState("");
+  const [budget, setBudget] = useState("");
 
   function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    if (!query.trim() || loading) return
-    onSearch(query.trim(), budget ? parseFloat(budget) : undefined)
+    e.preventDefault();
+    if (!query.trim() || loading) return;
+    onSearch(query.trim(), budget ? parseFloat(budget) : undefined);
   }
 
   return (
@@ -34,8 +34,10 @@ export function ChatInput({ onSearch, loading }: ChatInputProps) {
         />
       </div>
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-[180px]">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">$</span>
+        <div className="relative flex-1 max-w-45">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
+            $
+          </span>
           <input
             type="number"
             value={budget}
@@ -65,5 +67,5 @@ export function ChatInput({ onSearch, loading }: ChatInputProps) {
         </button>
       </div>
     </form>
-  )
+  );
 }
