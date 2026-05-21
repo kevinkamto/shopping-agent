@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 
 from app.agents.analysis_agent import AnalysedProduct
 from app.config import settings
@@ -14,6 +15,7 @@ class RecommenderAgent:
         self,
         req: ShoppingRequest,
         analyses: list[list[AnalysedProduct]],
+        on_event: Callable[[str, str], None] | None = None,
     ) -> ShoppingResponse:
         all_products = [p for group in analyses for p in group]
         if not all_products:
@@ -24,6 +26,9 @@ class RecommenderAgent:
                 search_queries_used=[],
                 agent_trace=["Recommender: no products to rank"],
             )
+
+        if on_event:
+            on_event("running", f"Scoring {len(all_products)} candidates with GPT-4o…")
 
         search_queries_used = list({p.source_query for p in all_products})
         products_text = json.dumps(
@@ -89,6 +94,10 @@ class RecommenderAgent:
             )
             for p in data.get("products", [])[: req.max_results]
         ]
+
+        if on_event:
+            budget_msg = f" within {req.currency} {req.budget} budget" if req.budget else ""
+            on_event("running", f"Selected top {len(ranked)} products{budget_msg}")
 
         return ShoppingResponse(
             query=req.query,

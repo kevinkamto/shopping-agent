@@ -24,29 +24,62 @@ class OrchestratorAgent:
         return await self.recommender.run(req, _dedup(list(analyses)))
 
     async def stream(self, req: ShoppingRequest) -> AsyncGenerator[dict[str, Any], None]:
-        yield _event("orchestrator", "running", f'Planning search strategy for: "{req.query}"')
+        # ── Orchestrator: plan ──────────────────────────────────────────────
+        yield _event("orchestrator", "running", f'Planning pipeline for: "{req.query}"')
 
-        yield _event("search", "running", "Generating targeted search queries…")
-        raw_results = await self.search.run(req.query, req.max_results)
-        yield _event("search", "done", f"Completed {len(raw_results)} search queries")
+        # ── Search: live per-query events via async generator ───────────────
+        raw_results: list[Any] = []
+        async for msg in self.search.stream(req.query, req.max_results):
+            if msg["type"] == "event":
+                yield _event("search", msg["status"], msg["message"])
+            else:
+                raw_results = msg["data"]
 
-        total_raw = sum(len(r.results) for r in raw_results)
-        yield _event("analysis", "running", f"Analysing {total_raw} raw results…")
-        analyses = await asyncio.gather(*[self.analysis.run(r) for r in raw_results])
-        deduped = _dedup(list(analyses))
-        total_products = sum(len(a) for a in deduped)
-        yield _event("analysis", "done", f"Extracted {total_products} unique candidate products")
+        yield _event("search", "done", f"Completed {len(raw_results)} searches")
 
-        yield _event("recommender", "running", f"Ranking top {req.max_results} recommendations…")
-        result = await self.recommender.run(req, deduped)
+        # ── Analysis: concurrent, events collected then flushed ─────────────
+        yield _event("orchestrator", "running", "Coordinating analysis phase…")
+
+        analysis_log: list[tuple[str, str]] = []
+
+        def on_analysis(status: str, msg: str) -> None:
+            analysis_log.append((status, msg))
+
+        analyses: list[list[AnalysedProduct]] = list(
+            await asyncio.gather(*[
+                self.analysis.run(r, on_event=on_analysis) for r in raw_results
+            ])
+        )
+
+        for status, msg in analysis_log:
+            yield _event("analysis", status, msg)
+
+        deduped = _dedup(analyses)
+        total = sum(len(a) for a in deduped)
+        yield _event("analysis", "done", f"Extracted {total} unique candidate products")
+
+        # ── Recommender ─────────────────────────────────────────────────────
+        yield _event("orchestrator", "running", "Coordinating ranking phase…")
+
+        recommender_log: list[tuple[str, str]] = []
+
+        def on_recommender(status: str, msg: str) -> None:
+            recommender_log.append((status, msg))
+
+        result = await self.recommender.run(req, deduped, on_event=on_recommender)
+
+        for status, msg in recommender_log:
+            yield _event("recommender", status, msg)
+
         yield _event("recommender", "done", f"Selected {len(result.products)} products")
 
-        yield _event("orchestrator", "done", "Search complete")
+        # ── Orchestrator: done ───────────────────────────────────────────────
+        yield _event("orchestrator", "done", "Pipeline complete")
         yield {"type": "result", "result": result.model_dump()}
 
 
 def _dedup(analyses: list[list[AnalysedProduct]]) -> list[list[AnalysedProduct]]:
-    """Flatten, deduplicate by URL (falling back to title), then re-wrap for the recommender."""
+    """Flatten and deduplicate by URL (falling back to title), then re-wrap for the recommender."""
     seen: set[str] = set()
     unique: list[AnalysedProduct] = []
     for group in analyses:
@@ -68,3 +101,4 @@ def _event(agent: str, status: str, message: str) -> dict[str, Any]:
             "timestamp": int(time.time() * 1000),
         },
     }
+

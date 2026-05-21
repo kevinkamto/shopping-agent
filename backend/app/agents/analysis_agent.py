@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 
 from app.agents.search_agent import RawSearchResult
 from app.config import settings
@@ -30,9 +31,17 @@ class AnalysedProduct:
 
 
 class AnalysisAgent:
-    async def run(self, raw: RawSearchResult) -> list[AnalysedProduct]:
+    async def run(
+        self,
+        raw: RawSearchResult,
+        on_event: Callable[[str, str], None] | None = None,
+    ) -> list[AnalysedProduct]:
         if not raw.results:
             return []
+
+        label = raw.query if len(raw.query) <= 55 else raw.query[:52] + "…"
+        if on_event:
+            on_event("running", f'Extracting products from: "{label}"')
 
         client = get_openai_client()
         results_text = json.dumps(raw.results, indent=2)
@@ -76,4 +85,8 @@ class AnalysisAgent:
                     source_query=raw.query,
                 )
             )
+
+        if on_event:
+            on_event("running", f"Extracted {len(products)} products")
+
         return products

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from app.config import settings
 from app.services.openai_client import get_openai_client
@@ -36,6 +38,44 @@ class SearchAgent:
             raw.append(RawSearchResult(query=sq, results=results))
 
         return raw
+
+    async def stream(self, query: str, max_results: int) -> AsyncGenerator[dict[str, Any], None]:
+        """Yields {"type": "event", "status": ..., "message": ...} then {"type": "result", "data": [...]}."""
+        yield {"type": "event", "status": "running", "message": "Generating search queries with GPT-4o…"}
+        search_queries = await self._generate_queries(query)
+        n = len(search_queries)
+        yield {
+            "type": "event",
+            "status": "running",
+            "message": f"Generated {n} search {'query' if n == 1 else 'queries'}",
+        }
+
+        raw: list[RawSearchResult] = []
+        tavily = get_tavily_client()
+        for sq in search_queries:
+            label = sq if len(sq) <= 60 else sq[:57] + "…"
+            yield {"type": "event", "status": "running", "message": f'Searching: "{label}"'}
+            response = await tavily.search(
+                query=sq,
+                max_results=max_results,
+                search_depth="advanced",
+            )
+            results = [
+                {
+                    "title": r.get("title", ""),
+                    "url": r.get("url", ""),
+                    "content": r.get("content", ""),
+                }
+                for r in response.get("results", [])
+            ]
+            raw.append(RawSearchResult(query=sq, results=results))
+            yield {
+                "type": "event",
+                "status": "running",
+                "message": f"Got {len(results)} results",
+            }
+
+        yield {"type": "result", "data": raw}
 
     async def _generate_queries(self, user_query: str) -> list[str]:
         client = get_openai_client()
