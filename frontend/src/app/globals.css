@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
 
 /* class-based dark mode: mirrors darkMode: "class" from v3 config */
 @variant dark (&:where(.dark, .dark *));
